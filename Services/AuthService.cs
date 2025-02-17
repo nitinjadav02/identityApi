@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using IdentityApi;
+using IdentityApi.Models.DTOs;
+using IdentityAPI.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -7,13 +11,19 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-public class AuthService
+public class AuthService : IAuthService
 {
     private readonly IConfiguration _configuration;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
 
-    public AuthService(IConfiguration configuration)
+    public AuthService(IConfiguration configuration, 
+        UserManager<ApplicationUser> userManager, 
+        RoleManager<IdentityRole> roleManager)
     {
         _configuration = configuration;
+        _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     public string GenerateJwtToken(string userId, string email)
@@ -38,5 +48,40 @@ public class AuthService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public async Task<IdentityResult> RegisterUserAsync(RegisterUserDto model)
+    { 
+        // Check if user already exists
+        var existingUser = await _userManager.FindByEmailAsync(model.Email);
+        if (existingUser != null)
+        {
+            return IdentityResult.Failed(new IdentityError { Description = "Email already registered." });
+        }
+
+        if (model.Password != model.ConfirmPassword)
+            return IdentityResult.Failed(new IdentityError { Description = "Passwords do not match." });
+
+        var user = new ApplicationUser
+        {
+            UserName = model.Email,
+            Email = model.Email,
+            FullName = model.FullName,
+            PhoneNumber = model.PhoneNumber,
+            EmailConfirmed = true
+        };
+
+        var result = await _userManager.CreateAsync(user, model.Password);
+        if (!result.Succeeded) return result;
+
+        // Assign Role
+        if (!await _roleManager.RoleExistsAsync(model.Role))
+        {
+            await _roleManager.CreateAsync(new IdentityRole(model.Role));
+        }
+
+        await _userManager.AddToRoleAsync(user, model.Role);
+
+        return IdentityResult.Success;
     }
 }

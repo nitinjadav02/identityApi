@@ -1,4 +1,5 @@
 using IdentityApi;
+using IdentityAPI.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,7 +32,8 @@ builder.Services.AddAuthentication("Bearer")
         options.RequireHttpsMetadata = false;
     });
 
-builder.Services.AddScoped<AuthService>();
+// Register Services
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
