@@ -84,4 +84,14 @@ public class AuthService : IAuthService
 
         return IdentityResult.Success;
     }
+
+    public async Task<bool> ChangePasswordAsync(string email, string currentPassword, string newPassword)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+            throw new Exception("User not found");
+
+        var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        return result.Succeeded;
+    }
 }

@@ -8,5 +8,6 @@ namespace IdentityAPI.Services
     {
         string GenerateJwtToken(string userId, string email);
         Task<IdentityResult> RegisterUserAsync(RegisterUserDto model);
+        Task<bool> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
     }
 }

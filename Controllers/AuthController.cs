@@ -1,11 +1,15 @@
 ﻿using IdentityApi;
 using IdentityApi.Models.DTOs;
 using IdentityAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -20,6 +24,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto model)
     {
@@ -33,6 +38,7 @@ public class AuthController : ControllerBase
         return Ok(new { token });
     }
 
+    [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterUserDto model)
     {
@@ -45,5 +51,28 @@ public class AuthController : ControllerBase
 
         return Ok(new { Message = "User registered successfully!" });
     }
+
+    [Authorize] // Ensures the user is authenticated
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto model)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        // Extract email from the JWT token
+        var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(email))
+            return Unauthorized("Invalid token");
+
+        return Unauthorized("mission passed");
+
+        var result = await _authService.ChangePasswordAsync(email, model.CurrentPassword, model.NewPassword);
+
+        if (!result)
+            return BadRequest("Failed to change password");
+
+        return Ok(new { Message = "Password changed successfully" });
+    }
+
 }
 

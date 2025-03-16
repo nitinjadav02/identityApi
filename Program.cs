@@ -1,7 +1,10 @@
 using IdentityApi;
 using IdentityAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +33,29 @@ builder.Services.AddAuthentication("Bearer")
         options.Authority = "https://localhost:5001";
         options.Audience = "api1";
         options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your-very-secure-secret-key-1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ,")), // Replace with your actual key
+            ValidateIssuer = true,
+            ValidIssuer = "https://localhost:5001", // Must match what you set when issuing the token
+            ValidateAudience = true,
+            ValidAudience = "api1", // Must match what the client expects
+            ValidateLifetime = true
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("Authentication failed: " + context.Exception.Message);
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("Token valid: " + context.SecurityToken);
+                return Task.CompletedTask;
+            }
+        };
     });
 
 // Register Services
